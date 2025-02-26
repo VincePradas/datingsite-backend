@@ -20,11 +20,7 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
-
-      - name: Run Tests (Optional)
-
-      - name: Build Project (Optional)
-
+        
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
