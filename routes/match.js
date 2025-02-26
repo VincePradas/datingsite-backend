@@ -55,7 +55,6 @@ router.post(
         return res.status(400).json({ message: "Already passed this user" });
       }
 
-      // Add to passedUsers
       currentUser.passedUsers.push(userId);
       await currentUser.save();
 
