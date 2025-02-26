@@ -191,13 +191,14 @@ router.put(
   "/update-profile",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
-    const { name, age, gender, interests, bio, profilePicture, password } =
+    const { name, age, gender, course, yrlevel, interests, bio, profilePicture, password } =
       req.body;
 
     try {
       let user = await User.findById(req.user._id);
       if (!user) return res.status(404).json({ message: "User not found" });
-
+      console.log('User object:', user);
+      console.log('User password:', user.password);
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch)
         return res
@@ -207,6 +208,8 @@ router.put(
       user.name = name || user.name;
       user.age = age || user.age;
       user.gender = gender || user.gender;
+      user.course = course || user.course;
+      user.yrlevel = yrlevel || user.yrlevel;
       user.interests = interests || user.interests;
       user.bio = bio || user.bio;
       user.profilePicture = profilePicture || user.profilePicture;
@@ -214,7 +217,8 @@ router.put(
       await user.save();
       res.json({ message: "Profile updated successfully", user });
     } catch (err) {
-      res.status(500).json({ message: "Server error" });
+      console.error(err); 
+      res.status(500).json({ message: "Server error"});
     }
   }
 );
@@ -241,7 +245,7 @@ router.put(
         return res.status(400).json({ message: "Passwords do not match" });
       }
 
-      user.password = await bcrypt.hash(newPassword, 10);
+      user.password = newPassword;
       await user.save();
 
       res.json({ message: "Password added successfully" });
