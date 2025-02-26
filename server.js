@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const passport = require("./config/passport");
 const authRoutes = require("./routes/auth");
+const postRoutes = require("./routes/posts");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
@@ -14,6 +15,7 @@ app.use(passport.initialize());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/posts", postRoutes);
 
 // MongoDB
 mongoose
