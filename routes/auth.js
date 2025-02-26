@@ -15,8 +15,11 @@ const generateToken = (user) => {
 
 // Register Route
 router.post("/register", async (req, res) => {
-  const { name, email, password, age, gender, interests, bio, profilePicture } =
-    req.body;
+  const { name, email, password, age, gender, interests, bio, profilePicture, yrlevel, course } = req.body;
+  console.log("Request Body:", req.body);
+  if (!yrlevel || !course) {
+    return res.status(400).json({ msg: "yrlevel and course are required" });
+  }
 
   try {
     let user = await User.findOne({ email });
@@ -24,45 +27,70 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ msg: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     user = new User({
       name,
       email,
-      password: hashedPassword,
+      password,
       age,
       gender,
       interests,
       bio,
       profilePicture,
+      yrlevel,
+      course,
     });
 
     await user.save();
     res.status(201).json({ msg: "User registered successfully" });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Server error");
+    res.status(500).json({ msg: "Server error", error: err });
   }
 });
 
-// Login Route (JWT via Cookie)
+
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
 
   try {
-    const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    const user = await User.findOne({ email: trimmedEmail.toLowerCase() });
+    if (!user) {
+      console.log("User not found in DB");
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    console.log("User Found:", user.email);
+    console.log("Stored Hashed Password:", user.password);
+    console.log("Provided Password:", trimmedPassword);
+
+    // Ensure password exists before comparing
+    if (!user.password) {
+      console.log("User signed up with Google, rejecting login.");
+      return res.status(401).json({ message: "Use Google login" });
+    }
+
+    // Compare passwords
+    const isMatch = await bcrypt.compare(trimmedPassword, user.password);
+    console.log("Password Match Result:", isMatch);
+
+    if (!isMatch) {
+      console.log("Password does not match");
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const token = generateToken(user);
+    console.log("Generated Token:", token);
 
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     });
+
     res.json({ message: "Logged in successfully", token });
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -75,17 +103,39 @@ router.get(
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", {
-    failureRedirect: "/login",
-    session: false,
-  }),
-  (req, res) => {
-    const token = generateToken(req.user);
-    res.cookie("token", token, { httpOnly: true, secure: false });
+  passport.authenticate("google", { failureRedirect: "/login", session: false }),
+  async (req, res) => {
+    try {
+      let user = await User.findOne({ email: req.user.email });
 
-    res.redirect("/api/auth/profile");
+      if (!user) {
+        user = new User({
+          name: req.user.displayName,
+          email: req.user.email,
+          profilePicture: req.user.photos[0].value,
+          yrlevel: null,  
+          course: null,  
+        });
+
+        await user.save();
+      }
+
+      // Generate token
+      const token = generateToken(user);
+      res.cookie("token", token, { httpOnly: true, secure: false });
+
+      if (!user.yrlevel || !user.course) {
+        return res.redirect("/complete-profile");
+      }
+
+      res.redirect("/api/auth/profile");
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Server error" });
+    }
   }
 );
+
 
 // Protected Routes
 router.get(
