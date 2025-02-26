@@ -191,7 +191,7 @@ router.put(
   "/update-profile",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
-    const { name, age, gender, course, yrlevel, interests, bio, profilePicture, password } =
+    const { name, age, gender, height, course, yrlevel, interests, bio, profilePicture, password } =
       req.body;
 
     try {
@@ -209,6 +209,7 @@ router.put(
       user.age = age || user.age;
       user.gender = gender || user.gender;
       user.course = course || user.course;
+      user.height = height || user.height;
       user.yrlevel = yrlevel || user.yrlevel;
       user.interests = interests || user.interests;
       user.bio = bio || user.bio;
