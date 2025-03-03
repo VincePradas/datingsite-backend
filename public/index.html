@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.IO Chat</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    #chat { max-width: 600px; margin: 20px auto; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    #messages { list-style-type: none; padding: 0; max-height: 300px; overflow-y: auto; }
+    #messages li { padding: 8px; margin-bottom: 10px; background: #f4f4f4; border-radius: 5px; }
+    #form { display: flex; margin-top: 10px; }
+    #input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    #button { padding: 10px; border: none; background: #007bff; color: white; cursor: pointer; border-radius: 5px; }
+    #button:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+  <div id="chat">
+    <ul id="messages"></ul>
+    <form id="form">
+      <input id="input" autocomplete="off" placeholder="Type a message..." required />
+      <button id="button" type="submit">Send</button>
+    </form>
+  </div>
+
+  <script>
+    const socket = io();
+    
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const messages = document.getElementById('messages');
+
+    const user1 = '67bfd44536287f2217ef8daa'; 
+    const user2 = '67bebc14519c9d793e16b683'; 
+
+    async function loadMessages() {
+      try {
+        const response = await fetch(`/api/chat/${user1}/${user2}`);
+        const data = await response.json();
+        
+        messages.innerHTML = ''; 
+        data.forEach(msg => addMessage(msg));
+        
+        scrollToBottom();
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      }
+    }
+
+    function addMessage(msg) {
+      const item = document.createElement('li');
+      item.textContent = msg.message;
+      messages.appendChild(item);
+    }
+
+    function scrollToBottom() {
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (input.value.trim()) {
+        const messageData = {
+          senderId: user1,
+          receiverId: user2,
+          message: input.value.trim()
+        };
+
+        try {
+          const response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(messageData)
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to send message');
+          }
+
+          const savedMessage = await response.json();
+
+          socket.emit('sendMessage', savedMessage);
+
+          input.value = '';
+          input.focus();
+        } catch (error) {
+          console.error('Error sending message:', error);
+        }
+      }
+    });
+
+    socket.on('receiveMessage', (msg) => {
+      addMessage(msg);
+      scrollToBottom();
+    });
+
+    loadMessages();
+  </script>
+</body>
+</html>
