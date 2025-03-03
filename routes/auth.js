@@ -65,13 +65,11 @@ router.post("/login", async (req, res) => {
     console.log("Stored Hashed Password:", user.password);
     console.log("Provided Password:", trimmedPassword);
 
-    // Ensure password exists before comparing
     if (!user.password) {
       console.log("User signed up with Google, rejecting login.");
       return res.status(401).json({ message: "Use Google login" });
     }
 
-    // Compare passwords
     const isMatch = await bcrypt.compare(trimmedPassword, user.password);
     console.log("Password Match Result:", isMatch);
 
@@ -120,7 +118,7 @@ router.get(
         await user.save();
       }
 
-      // Generate token
+      // token
       const token = generateToken(user);
       res.cookie("token", token, { httpOnly: true, secure: false });
 
